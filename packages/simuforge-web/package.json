@@ -11,7 +11,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@simuforge/renderer": "workspace:*"
+    "@simuforge/renderer": "file:../simuforge-renderer"
   },
   "devDependencies": {
     "typescript": "^5.3.0",
