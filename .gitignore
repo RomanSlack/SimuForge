@@ -1,0 +1,36 @@
+# Rust
+/target/
+Cargo.lock
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# WASM build artifacts
+/packages/simuforge-renderer/pkg/
+/packages/simuforge-web/pkg/
+
+# Results (generated experiment outputs)
+/results/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+temp.txt
