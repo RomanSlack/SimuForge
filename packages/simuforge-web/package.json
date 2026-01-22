@@ -11,7 +11,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@simuforge/renderer": "file:../simuforge-renderer"
+    "@babylonjs/core": "^7.0.0"
   },
   "devDependencies": {
     "typescript": "^5.3.0",

@@ -2,7 +2,23 @@
  * SimuForge Web Application
  */
 
-import { SimuForgeRenderer, WasmLoader, type MetricFrame, type SimulationReport } from '@simuforge/renderer';
+// Import WASM module directly
+import init, { Simulation, get_available_scenarios, validate_spec } from '../../simuforge-renderer/pkg/simuforge_wasm.js';
+
+// Import renderer (without WASM loader for now)
+import {
+  Engine,
+  Scene,
+  ArcRotateCamera,
+  HemisphericLight,
+  DirectionalLight,
+  Vector3,
+  Color3,
+  Color4,
+  MeshBuilder,
+  StandardMaterial,
+  Quaternion,
+} from '@babylonjs/core';
 
 // DOM elements
 const canvas = document.getElementById('render-canvas') as HTMLCanvasElement;
@@ -29,8 +45,13 @@ const potentialValue = document.getElementById('potential-value') as HTMLSpanEle
 const contactsValue = document.getElementById('contacts-value') as HTMLSpanElement;
 const penetrationValue = document.getElementById('penetration-value') as HTMLSpanElement;
 
-let renderer: SimuForgeRenderer | null = null;
+// Babylon.js setup
+let engine: Engine;
+let scene: Scene;
+let simulation: Simulation | null = null;
+let bodyMeshes: Map<number, any> = new Map();
 let isPlaying = false;
+let playbackSpeed = 1.0;
 
 /**
  * Generate experiment spec JSON from form inputs
@@ -92,39 +113,89 @@ function getScenarioParams(scenario: string): Record<string, unknown> {
 }
 
 /**
+ * Create body meshes from simulation
+ */
+function createBodyMeshes() {
+  // Clear existing meshes
+  bodyMeshes.forEach(mesh => mesh.dispose());
+  bodyMeshes.clear();
+
+  if (!simulation) return;
+
+  const transforms = simulation.get_body_transforms() as any[];
+
+  // Create materials
+  const dynamicMat = new StandardMaterial('dynamicMat', scene);
+  dynamicMat.diffuseColor = new Color3(0.3, 0.6, 0.9);
+
+  const staticMat = new StandardMaterial('staticMat', scene);
+  staticMat.diffuseColor = new Color3(0.4, 0.4, 0.4);
+
+  const groundMat = new StandardMaterial('groundMat', scene);
+  groundMat.diffuseColor = new Color3(0.35, 0.35, 0.35);
+
+  for (const t of transforms) {
+    const isGround = t.name.includes('ground') || t.name.includes('floor');
+    const isRamp = t.name.includes('ramp');
+    const isSphere = t.name.includes('sphere') || t.name.includes('ball');
+
+    let mesh;
+
+    if (isGround) {
+      // Ground plane - large flat box
+      mesh = MeshBuilder.CreateBox(t.name, { width: 100, height: 1, depth: 100 }, scene);
+      mesh.material = groundMat;
+    } else if (isRamp) {
+      // Ramp
+      mesh = MeshBuilder.CreateBox(t.name, { width: 10, height: 1, depth: 4 }, scene);
+      mesh.material = staticMat;
+    } else if (isSphere) {
+      // Sphere
+      mesh = MeshBuilder.CreateSphere(t.name, { diameter: 1, segments: 16 }, scene);
+      mesh.material = dynamicMat;
+    } else {
+      // Default box (stacked boxes etc)
+      mesh = MeshBuilder.CreateBox(t.name, { size: 1 }, scene);
+      mesh.material = dynamicMat;
+    }
+
+    // Set initial transform
+    mesh.position = new Vector3(t.position[0], t.position[1], t.position[2]);
+    mesh.rotationQuaternion = new Quaternion(t.rotation[0], t.rotation[1], t.rotation[2], t.rotation[3]);
+
+    bodyMeshes.set(t.id, mesh);
+  }
+}
+
+/**
+ * Update body meshes from simulation state
+ */
+function updateBodyMeshes() {
+  if (!simulation) return;
+
+  const transforms = simulation.get_body_transforms() as any[];
+
+  for (const t of transforms) {
+    const mesh = bodyMeshes.get(t.id);
+    if (mesh) {
+      mesh.position.set(t.position[0], t.position[1], t.position[2]);
+      mesh.rotationQuaternion = new Quaternion(t.rotation[0], t.rotation[1], t.rotation[2], t.rotation[3]);
+    }
+  }
+}
+
+/**
  * Update metrics display
  */
-function updateMetrics(frame: MetricFrame): void {
+function updateMetrics(frame: any): void {
   energyValue.textContent = frame.energy.total.toFixed(2);
   kineticValue.textContent = frame.energy.kinetic.toFixed(2);
   potentialValue.textContent = frame.energy.potential.toFixed(2);
   contactsValue.textContent = frame.contacts.contact_count.toString();
   penetrationValue.textContent = frame.contacts.max_penetration.toFixed(6);
 
-  stepDisplay.textContent = `Step: ${frame.step}`;
+  stepDisplay.textContent = `Step: ${simulation?.current_step() ?? 0} / ${simulation?.target_steps() ?? 0}`;
   timeDisplay.textContent = `Time: ${frame.time.toFixed(3)}s`;
-}
-
-/**
- * Update playback state display
- */
-function updatePlaybackState(): void {
-  if (!renderer) return;
-
-  const state = renderer.getPlaybackState();
-  stepDisplay.textContent = `Step: ${state.currentStep} / ${state.totalSteps}`;
-
-  playBtn.textContent = state.isPlaying ? '⏸' : '▶';
-  isPlaying = state.isPlaying;
-}
-
-/**
- * Handle simulation complete
- */
-function handleSimulationComplete(report: SimulationReport): void {
-  setStatus(`Complete: ${report.status}`, report.status === 'passed' ? 'success' : 'error');
-  console.log('Simulation Report:', report);
-  updatePlaybackState();
 }
 
 /**
@@ -136,49 +207,22 @@ function setStatus(message: string, type: 'success' | 'error' | 'warning' | 'inf
 }
 
 /**
- * Initialize application
- */
-async function init(): Promise<void> {
-  try {
-    // Load WASM module
-    setStatus('Loading WASM...');
-    await WasmLoader.load();
-
-    // Create renderer
-    renderer = new SimuForgeRenderer({
-      canvas,
-      antialias: true,
-      autoResize: true,
-    });
-
-    // Set up callbacks
-    renderer.setOnFrameUpdate(updateMetrics);
-    renderer.setOnSimulationComplete(handleSimulationComplete);
-
-    // Hide loading overlay
-    loadingEl.classList.add('hidden');
-    setStatus('Ready');
-
-    // Load default experiment
-    await loadExperiment();
-  } catch (error) {
-    console.error('Initialization error:', error);
-    setStatus(`Error: ${error}`, 'error');
-  }
-}
-
-/**
  * Load experiment
  */
 async function loadExperiment(): Promise<void> {
-  if (!renderer) return;
-
   try {
     setStatus('Loading experiment...');
+
+    if (simulation) {
+      simulation.free();
+    }
+
     const spec = generateSpec();
-    await renderer.loadSimulation(spec);
+    simulation = new Simulation(spec);
+
+    createBodyMeshes();
+
     setStatus('Experiment loaded');
-    updatePlaybackState();
 
     // Reset metrics display
     energyValue.textContent = '-';
@@ -186,9 +230,92 @@ async function loadExperiment(): Promise<void> {
     potentialValue.textContent = '-';
     contactsValue.textContent = '-';
     penetrationValue.textContent = '-';
+    stepDisplay.textContent = `Step: 0 / ${simulation.target_steps()}`;
+    timeDisplay.textContent = 'Time: 0.000s';
+
+    playBtn.textContent = '▶';
+    isPlaying = false;
   } catch (error) {
     console.error('Load error:', error);
     setStatus(`Load error: ${error}`, 'error');
+  }
+}
+
+/**
+ * Animation loop
+ */
+let lastTime = 0;
+let accumulator = 0;
+const timestep = 1/60;
+
+function animate(currentTime: number) {
+  const deltaTime = (currentTime - lastTime) / 1000;
+  lastTime = currentTime;
+
+  if (isPlaying && simulation && !simulation.is_complete()) {
+    accumulator += deltaTime * playbackSpeed;
+
+    while (accumulator >= timestep) {
+      const frame = simulation.step();
+      updateMetrics(frame);
+      accumulator -= timestep;
+    }
+
+    updateBodyMeshes();
+
+    if (simulation.is_complete()) {
+      isPlaying = false;
+      playBtn.textContent = '▶';
+      setStatus('Simulation complete');
+    }
+  }
+
+  scene.render();
+  requestAnimationFrame(animate);
+}
+
+/**
+ * Initialize application
+ */
+async function initApp(): Promise<void> {
+  try {
+    // Load WASM module
+    setStatus('Loading WASM...');
+    await init();
+
+    // Create Babylon engine
+    engine = new Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+    scene = new Scene(engine);
+    scene.clearColor = new Color4(0.15, 0.15, 0.18, 1);
+
+    // Camera
+    const camera = new ArcRotateCamera('camera', -Math.PI / 2, Math.PI / 3, 25, Vector3.Zero(), scene);
+    camera.attachControl(canvas, true);
+    camera.wheelPrecision = 20;
+
+    // Lights
+    const ambient = new HemisphericLight('ambient', new Vector3(0, 1, 0), scene);
+    ambient.intensity = 0.6;
+
+    const main = new DirectionalLight('main', new Vector3(-1, -2, -1).normalize(), scene);
+    main.intensity = 0.8;
+
+    // Hide loading overlay
+    loadingEl.classList.add('hidden');
+    setStatus('Ready');
+
+    // Load default experiment
+    await loadExperiment();
+
+    // Start render loop
+    lastTime = performance.now();
+    requestAnimationFrame(animate);
+
+    // Handle resize
+    window.addEventListener('resize', () => engine.resize());
+  } catch (error) {
+    console.error('Initialization error:', error);
+    setStatus(`Error: ${error}`, 'error');
   }
 }
 
@@ -196,39 +323,41 @@ async function loadExperiment(): Promise<void> {
 loadBtn.addEventListener('click', loadExperiment);
 
 resetBtn.addEventListener('click', () => {
-  renderer?.reset();
-  updatePlaybackState();
-  setStatus('Reset');
+  if (simulation) {
+    simulation.reset();
+    createBodyMeshes();
+    setStatus('Reset');
+    playBtn.textContent = '▶';
+    isPlaying = false;
+  }
 });
 
 playBtn.addEventListener('click', () => {
-  if (!renderer) return;
+  if (!simulation) return;
 
   if (isPlaying) {
-    renderer.pause();
+    isPlaying = false;
+    playBtn.textContent = '▶';
     setStatus('Paused');
   } else {
-    renderer.play();
+    isPlaying = true;
+    playBtn.textContent = '⏸';
     setStatus('Playing');
   }
-  updatePlaybackState();
 });
 
 stepBtn.addEventListener('click', () => {
-  if (!renderer) return;
+  if (!simulation || simulation.is_complete()) return;
 
-  const frame = renderer.step();
-  if (frame) {
-    updateMetrics(frame);
-  }
-  updatePlaybackState();
+  const frame = simulation.step();
+  updateMetrics(frame);
+  updateBodyMeshes();
 });
 
 speedInput.addEventListener('input', () => {
-  const speed = parseFloat(speedInput.value);
-  renderer?.setPlaybackSpeed(speed);
-  speedDisplay.textContent = `${speed.toFixed(1)}x`;
+  playbackSpeed = parseFloat(speedInput.value);
+  speedDisplay.textContent = `${playbackSpeed.toFixed(1)}x`;
 });
 
 // Start application
-init();
+initApp();

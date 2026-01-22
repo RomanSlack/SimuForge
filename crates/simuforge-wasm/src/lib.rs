@@ -75,22 +75,19 @@ impl Simulation {
 
     /// Get transforms of all bodies for rendering
     pub fn get_body_transforms(&self) -> JsValue {
-        let transforms: Vec<BodyTransform> = self.world.frames()
-            .last()
-            .map(|f| {
-                f.bodies.iter().map(|b| BodyTransform {
-                    id: b.id,
-                    name: b.name.clone(),
-                    position: [b.transform.position.x, b.transform.position.y, b.transform.position.z],
-                    rotation: [
-                        b.transform.rotation.x,
-                        b.transform.rotation.y,
-                        b.transform.rotation.z,
-                        b.transform.rotation.w,
-                    ],
-                }).collect()
-            })
-            .unwrap_or_default();
+        // Use current_frame which reads directly from physics world
+        let frame = self.world.current_frame();
+        let transforms: Vec<BodyTransform> = frame.bodies.iter().map(|b| BodyTransform {
+            id: b.id,
+            name: b.name.clone(),
+            position: [b.transform.position.x, b.transform.position.y, b.transform.position.z],
+            rotation: [
+                b.transform.rotation.x,
+                b.transform.rotation.y,
+                b.transform.rotation.z,
+                b.transform.rotation.w,
+            ],
+        }).collect();
 
         serde_wasm_bindgen::to_value(&transforms).unwrap_or(JsValue::NULL)
     }
