@@ -1,0 +1,39 @@
+apiVersion: simuforge/v1
+kind: Experiment
+metadata:
+  name: friction-ramp
+  description: Object sliding down ramp - friction coefficient test
+  tags:
+    - friction
+    - sliding
+    - ramp
+spec:
+  physics:
+    timestep: 0.016666667
+    gravity: [0, -9.81, 0]
+    solver_iterations: 8
+    enhanced_determinism: true
+    seed: 42
+  duration:
+    type: fixed
+    steps: 600
+  scenario:
+    type: builtin
+    name: friction_ramp
+    params:
+      ramp_angle: 0.5
+      ramp_length: 10.0
+      box_size: 1.0
+      friction: 0.3
+      restitution: 0.1
+  metrics:
+    per_frame:
+      - total_energy
+      - momentum
+      - contacts
+    aggregate:
+      - energy_drift_percent
+      - max_penetration
+  criteria:
+    max_penetration_ever:
+      max: 0.1

@@ -1,0 +1,38 @@
+apiVersion: simuforge/v1
+kind: Experiment
+metadata:
+  name: bouncing-ball
+  description: Ball dropped from height - restitution test
+  tags:
+    - restitution
+    - bouncing
+    - energy
+spec:
+  physics:
+    timestep: 0.016666667
+    gravity: [0, -9.81, 0]
+    solver_iterations: 8
+    enhanced_determinism: true
+    seed: 42
+  duration:
+    type: fixed
+    steps: 900
+  scenario:
+    type: builtin
+    name: bouncing_ball
+    params:
+      radius: 0.5
+      drop_height: 10.0
+      restitution: 0.8
+      friction: 0.3
+      density: 1.0
+  metrics:
+    per_frame:
+      - total_energy
+      - contacts
+    aggregate:
+      - energy_drift_percent
+      - max_penetration
+  criteria:
+    max_penetration_ever:
+      max: 0.2

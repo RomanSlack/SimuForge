@@ -1,0 +1,20 @@
+[package]
+name = "simuforge-physics"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Rapier physics integration with metric collection for SimuForge"
+
+[dependencies]
+simuforge-core = { workspace = true }
+rapier3d = { workspace = true }
+nalgebra = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+rand = { workspace = true }
+rand_chacha = { workspace = true }
+
+[features]
+default = ["enhanced-determinism"]
+enhanced-determinism = []

@@ -1,0 +1,42 @@
+apiVersion: simuforge/v1
+kind: Experiment
+metadata:
+  name: box-stack-50
+  description: Stack of 50 boxes - stress test for stability
+  tags:
+    - stability
+    - stacking
+    - stress-test
+spec:
+  physics:
+    timestep: 0.016666667
+    gravity: [0, -9.81, 0]
+    solver_iterations: 12
+    enhanced_determinism: true
+    seed: 42
+  duration:
+    type: fixed
+    steps: 1200
+  scenario:
+    type: builtin
+    name: box_stack
+    params:
+      count: 50
+      box_size: [1, 1, 1]
+      spacing: 0.0
+      friction: 0.6
+      restitution: 0.05
+  metrics:
+    per_frame:
+      - total_energy
+      - penetration
+      - contacts
+    aggregate:
+      - energy_drift_percent
+      - max_penetration
+      - stability_time
+  criteria:
+    energy_drift_percent:
+      max: 99.0
+    max_penetration_ever:
+      max: 0.5

@@ -1,0 +1,39 @@
+apiVersion: simuforge/v1
+kind: Experiment
+metadata:
+  name: rolling-sphere
+  description: Sphere rolling on flat surface - friction test
+  tags:
+    - friction
+    - rolling
+    - momentum
+spec:
+  physics:
+    timestep: 0.016666667
+    gravity: [0, -9.81, 0]
+    solver_iterations: 8
+    enhanced_determinism: true
+    seed: 42
+  duration:
+    type: fixed
+    steps: 600
+  scenario:
+    type: builtin
+    name: rolling_sphere
+    params:
+      radius: 0.5
+      initial_velocity: [5.0, 0, 0]
+      friction: 0.5
+      restitution: 0.1
+      density: 1.0
+  metrics:
+    per_frame:
+      - total_energy
+      - momentum
+      - contacts
+    aggregate:
+      - energy_drift_percent
+      - max_penetration
+  criteria:
+    max_penetration_ever:
+      max: 0.005

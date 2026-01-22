@@ -1,0 +1,29 @@
+{
+  "name": "simuforge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Physics simulation harness for Claude Code experiments",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build:wasm": "cd crates/simuforge-wasm && wasm-pack build --target web --out-dir ../../packages/simuforge-renderer/pkg",
+    "build:renderer": "npm run build -w packages/simuforge-renderer",
+    "build:web": "npm run build -w packages/simuforge-web",
+    "build:all": "npm run build:wasm && npm run build:renderer && npm run build:web",
+    "dev": "npm run dev -w packages/simuforge-web",
+    "test": "npm test --workspaces --if-present",
+    "clean": "rm -rf packages/*/dist packages/*/pkg node_modules"
+  },
+  "keywords": [
+    "physics",
+    "simulation",
+    "rapier",
+    "wasm",
+    "babylonjs"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}

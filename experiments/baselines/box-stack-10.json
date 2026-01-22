@@ -1,0 +1,29 @@
+{
+  "status": "passed",
+  "experiment_name": "box-stack-10",
+  "total_steps": 600,
+  "total_time": 10.000019,
+  "metrics": {
+    "energy_drift_percent": -0.3672126233577728,
+    "initial_energy": 490.50003,
+    "final_energy": 488.69885,
+    "max_penetration_ever": 0.0060231686,
+    "total_constraint_violations": 0,
+    "stabilization_step": 0,
+    "stability_time": 0.0,
+    "average_contact_count": 9.983361,
+    "frame_count": 601
+  },
+  "criteria_results": {
+    "energy_drift_percent": {
+      "value": -0.3672126233577728,
+      "max": 5.0,
+      "passed": true
+    },
+    "max_penetration_ever": {
+      "value": 0.0060231685638427734,
+      "max": 0.01,
+      "passed": true
+    }
+  }
+}

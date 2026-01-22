@@ -1,14 +1,33 @@
 //! Math types wrapping nalgebra for serialization and ease of use
 
 use nalgebra::{Vector3, UnitQuaternion, Isometry3};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-/// 3D vector type
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+/// 3D vector type - serializes as [x, y, z] array for YAML compatibility
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vec3 {
     pub x: f32,
     pub y: f32,
     pub z: f32,
+}
+
+impl Serialize for Vec3 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        [self.x, self.y, self.z].serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Vec3 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let arr: [f32; 3] = Deserialize::deserialize(deserializer)?;
+        Ok(Vec3 { x: arr[0], y: arr[1], z: arr[2] })
+    }
 }
 
 impl Vec3 {
@@ -106,6 +125,12 @@ impl std::ops::Mul<f32> for Vec3 {
             y: self.y * scalar,
             z: self.z * scalar,
         }
+    }
+}
+
+impl Default for Vec3 {
+    fn default() -> Self {
+        Self::ZERO
     }
 }
 

@@ -1,0 +1,22 @@
+[package]
+name = "simuforge-harness"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "CLI tool for running SimuForge physics experiments"
+
+[[bin]]
+name = "simuforge"
+path = "src/main.rs"
+
+[dependencies]
+simuforge-core = { workspace = true }
+simuforge-physics = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+anyhow = { workspace = true }
+
+[features]
+default = []

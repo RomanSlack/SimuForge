@@ -1,0 +1,25 @@
+{
+  "name": "@simuforge/renderer",
+  "version": "0.1.0",
+  "description": "Babylon.js visualization for SimuForge physics simulations",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "pkg"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@babylonjs/core": "^7.0.0",
+    "@babylonjs/materials": "^7.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  },
+  "peerDependencies": {}
+}

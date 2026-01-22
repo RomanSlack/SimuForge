@@ -1,0 +1,295 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://simuforge.dev/schemas/experiment.schema.json",
+  "title": "SimuForge Experiment Specification",
+  "description": "Schema for SimuForge physics experiment specifications",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "simuforge/v1",
+      "description": "API version for the experiment spec"
+    },
+    "kind": {
+      "type": "string",
+      "const": "Experiment",
+      "description": "Resource kind"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unique name for the experiment"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tags for categorization"
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["physics", "duration", "scenario"],
+      "properties": {
+        "physics": {
+          "type": "object",
+          "properties": {
+            "timestep": {
+              "type": "number",
+              "minimum": 0.0001,
+              "maximum": 0.1,
+              "default": 0.016666667,
+              "description": "Fixed timestep in seconds"
+            },
+            "gravity": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 3,
+              "maxItems": 3,
+              "default": [0, -9.81, 0],
+              "description": "Gravity vector [x, y, z]"
+            },
+            "solver_iterations": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 8,
+              "description": "Number of constraint solver iterations"
+            },
+            "enhanced_determinism": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable enhanced determinism mode"
+            },
+            "seed": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Random seed for reproducibility"
+            }
+          }
+        },
+        "duration": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["type", "steps"],
+              "properties": {
+                "type": { "const": "fixed" },
+                "steps": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Fixed number of simulation steps"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["type", "seconds"],
+              "properties": {
+                "type": { "const": "time" },
+                "seconds": {
+                  "type": "number",
+                  "minimum": 0.001,
+                  "description": "Simulation time in seconds"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["type", "max_steps", "threshold"],
+              "properties": {
+                "type": { "const": "until_stable" },
+                "max_steps": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Maximum steps before timeout"
+                },
+                "threshold": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Velocity threshold for stability"
+                }
+              }
+            }
+          ]
+        },
+        "scenario": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["type", "name"],
+              "properties": {
+                "type": { "const": "builtin" },
+                "name": {
+                  "type": "string",
+                  "enum": ["box_stack", "rolling_sphere", "bouncing_ball", "friction_ramp"],
+                  "description": "Built-in scenario name"
+                },
+                "params": {
+                  "type": "object",
+                  "description": "Scenario-specific parameters"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["type", "bodies"],
+              "properties": {
+                "type": { "const": "custom" },
+                "bodies": {
+                  "type": "array",
+                  "items": { "$ref": "#/definitions/bodyConfig" },
+                  "description": "Custom body configurations"
+                }
+              }
+            }
+          ]
+        },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "per_frame": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Metrics to collect each frame"
+            },
+            "aggregate": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Aggregate metrics to compute"
+            }
+          }
+        },
+        "criteria": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/criteriaConfig"
+          },
+          "description": "Pass/fail criteria for metrics"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "bodyConfig": {
+      "type": "object",
+      "required": ["name", "shape", "position"],
+      "properties": {
+        "name": { "type": "string" },
+        "shape": { "$ref": "#/definitions/shapeConfig" },
+        "position": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "rotation": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "velocity": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "angular_velocity": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "body_type": {
+          "type": "string",
+          "enum": ["dynamic", "static", "kinematic"],
+          "default": "dynamic"
+        },
+        "material": { "$ref": "#/definitions/materialConfig" }
+      }
+    },
+    "shapeConfig": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "half_extents"],
+          "properties": {
+            "type": { "const": "box" },
+            "half_extents": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 3,
+              "maxItems": 3
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "radius"],
+          "properties": {
+            "type": { "const": "sphere" },
+            "radius": { "type": "number", "minimum": 0 }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "half_height", "radius"],
+          "properties": {
+            "type": { "const": "capsule" },
+            "half_height": { "type": "number", "minimum": 0 },
+            "radius": { "type": "number", "minimum": 0 }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "half_height", "radius"],
+          "properties": {
+            "type": { "const": "cylinder" },
+            "half_height": { "type": "number", "minimum": 0 },
+            "radius": { "type": "number", "minimum": 0 }
+          }
+        }
+      ]
+    },
+    "materialConfig": {
+      "type": "object",
+      "properties": {
+        "friction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.5
+        },
+        "restitution": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.3
+        },
+        "density": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1.0
+        }
+      }
+    },
+    "criteriaConfig": {
+      "type": "object",
+      "properties": {
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "equals": { "type": "number" },
+        "tolerance": { "type": "number" }
+      }
+    }
+  }
+}

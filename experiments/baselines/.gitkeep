@@ -1,0 +1,2 @@
+# Baseline results are stored here
+# Generated using: simuforge baseline <experiment.yaml> -o baselines/<name>.json

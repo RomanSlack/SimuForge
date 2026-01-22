@@ -1,0 +1,43 @@
+apiVersion: simuforge/v1
+kind: Experiment
+metadata:
+  name: box-stack-10
+  description: Stack of 10 boxes - baseline stability test
+  tags:
+    - stability
+    - stacking
+    - baseline
+spec:
+  physics:
+    timestep: 0.016666667
+    gravity: [0, -9.81, 0]
+    solver_iterations: 8
+    enhanced_determinism: true
+    seed: 42
+  duration:
+    type: fixed
+    steps: 600
+  scenario:
+    type: builtin
+    name: box_stack
+    params:
+      count: 10
+      box_size: [1, 1, 1]
+      spacing: 0.0
+      friction: 0.5
+      restitution: 0.1
+  metrics:
+    per_frame:
+      - total_energy
+      - momentum
+      - penetration
+      - contacts
+    aggregate:
+      - energy_drift_percent
+      - max_penetration
+      - stability_time
+  criteria:
+    energy_drift_percent:
+      max: 5.0
+    max_penetration_ever:
+      max: 0.01

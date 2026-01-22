@@ -63,6 +63,7 @@ impl SimulationReport {
     fn evaluate_criteria(&mut self, criteria: &HashMap<String, CriteriaConfig>) {
         let metric_values = self.get_metric_values();
         let mut all_passed = true;
+        let mut results = Vec::new();
 
         for (name, config) in criteria {
             if let Some(&value) = metric_values.get(name.as_str()) {
@@ -70,7 +71,7 @@ impl SimulationReport {
                 if !passed {
                     all_passed = false;
                 }
-                self.criteria_results.insert(
+                results.push((
                     name.clone(),
                     CriterionResult {
                         value,
@@ -78,8 +79,12 @@ impl SimulationReport {
                         max: config.max,
                         passed,
                     },
-                );
+                ));
             }
+        }
+
+        for (name, result) in results {
+            self.criteria_results.insert(name, result);
         }
 
         self.status = if all_passed {

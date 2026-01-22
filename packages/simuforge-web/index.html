@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SimuForge - Physics Simulation Harness</title>
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <h1>SimuForge</h1>
+      <span class="subtitle">Physics Simulation Harness</span>
+    </header>
+
+    <main class="main">
+      <aside class="sidebar">
+        <section class="panel">
+          <h2>Experiment</h2>
+          <div class="form-group">
+            <label for="scenario-select">Scenario</label>
+            <select id="scenario-select">
+              <option value="box_stack">Box Stack</option>
+              <option value="rolling_sphere">Rolling Sphere</option>
+              <option value="bouncing_ball">Bouncing Ball</option>
+              <option value="friction_ramp">Friction Ramp</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="steps-input">Duration (steps)</label>
+            <input type="number" id="steps-input" value="600" min="10" max="10000">
+          </div>
+
+          <div class="form-group">
+            <label for="timestep-input">Timestep</label>
+            <input type="number" id="timestep-input" value="0.016666667" step="0.001" min="0.001" max="0.1">
+          </div>
+
+          <button id="load-btn" class="btn btn-primary">Load Experiment</button>
+        </section>
+
+        <section class="panel">
+          <h2>Playback</h2>
+          <div class="playback-controls">
+            <button id="reset-btn" class="btn" title="Reset">⏮</button>
+            <button id="play-btn" class="btn" title="Play/Pause">▶</button>
+            <button id="step-btn" class="btn" title="Step">⏭</button>
+          </div>
+
+          <div class="form-group">
+            <label for="speed-input">Speed</label>
+            <input type="range" id="speed-input" min="0.1" max="5" step="0.1" value="1">
+            <span id="speed-display">1.0x</span>
+          </div>
+
+          <div class="progress-info">
+            <span id="step-display">Step: 0 / 0</span>
+            <span id="time-display">Time: 0.000s</span>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Metrics</h2>
+          <div class="metrics">
+            <div class="metric">
+              <span class="metric-label">Energy</span>
+              <span id="energy-value" class="metric-value">-</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Kinetic</span>
+              <span id="kinetic-value" class="metric-value">-</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Potential</span>
+              <span id="potential-value" class="metric-value">-</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Contacts</span>
+              <span id="contacts-value" class="metric-value">-</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Max Penetration</span>
+              <span id="penetration-value" class="metric-value">-</span>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <div class="viewport">
+        <canvas id="render-canvas"></canvas>
+        <div id="loading" class="loading">
+          <div class="spinner"></div>
+          <span>Loading WASM module...</span>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <span>SimuForge v0.1.0</span>
+      <span id="status">Ready</span>
+    </footer>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
